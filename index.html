@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DLB Inventory & Delivery Dashboard</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+/* HEADER */
+
+.header {
+  background: #111827;
+  color: white;
+  padding: 20px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.header small {
+  color: #cbd5e1;
+}
+
+/* NAVIGATION */
+
+.nav {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 28px;
+  display: flex;
+  gap: 25px;
+}
+
+.nav button {
+  background: none;
+  border: none;
+  padding: 16px 5px;
+  cursor: pointer;
+  font-size: 15px;
+  color: #6b7280;
+}
+
+.nav button.active {
+  color: #2563eb;
+  border-bottom: 3px solid #2563eb;
+  font-weight: bold;
+}
+
+/* CONTENT */
+
+.container {
+  padding: 28px;
+  max-width: 1500px;
+  margin: auto;
+}
+
+.section {
+  display: none;
+}
+
+.section.active {
+  display: block;
+}
+
+/* CARDS */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.card-title {
+  color: #6b7280;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-size: 27px;
+  font-weight: bold;
+}
+
+.card-subtitle {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* TABLE */
+
+.table-box {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  overflow-x: auto;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  background: #f9fafb;
+  padding: 12px;
+  font-size: 13px;
+  color: #4b5563;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+tr:hover {
+  background: #f9fafb;
+}
+
+/* SEARCH / FILTER */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+input, select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  min-width: 200px;
+  background: white;
+}
+
+/* STATUS */
+
+.status {
+  padding: 5px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.delivered {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.transit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.exception {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* STOCK */
+
+.stock-zero {
+  color: #dc2626;
+  font-weight: bold;
+}
+
+.stock-low {
+  color: #d97706;
+  font-weight: bold;
+}
+
+.stock-good {
+  color: #15803d;
+  font-weight: bold;
+}
+
+/* MISC */
+
+h2 {
+  margin-top: 0;
+}
+
+.section-title {
+  margin: 30px 0 15px;
+}
+
+.loading {
+  text-align: center;
+  padding: 50px;
+  font-size: 18px;
+}
+
+.error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.refresh {
+  background: #2563eb;
+  color: white;
+  border: 0;
+  padding: 9px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@media(max-width:700px) {
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .container {
+    padding: 15px;
+  }
+
+  .nav {
+    overflow-x: auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+
+  <div>
+    <h1>DLB Inventory & Delivery</h1>
+    <small>Live Book Inventory Dashboard</small>
+  </div>
+
+  <div>
+    <small id="lastUpdated">Loading...</small>
+    &nbsp;
+    <button class="refresh" onclick="loadData()">Refresh</button>
+  </div>
+
+</div>
+
+
+<div class="nav">
+
+  <button class="active"
+    onclick="showSection('dashboard',this)">
+    Dashboard
+  </button>
+
+  <button
+    onclick="showSection('inventory',this)">
+    Inventory
+  </button>
+
+  <button
+    onclick="showSection('deliveries',this)">
+    Deliveries
+  </button>
+
+</div>
+
+
+<div class="container">
+
+<div id="errorBox"></div>
+
+
+<!-- DASHBOARD -->
+
+<div id="dashboard" class="section active">
+
+<h2>Inventory Overview</h2>
+
+<div class="cards">
+
+<div class="card">
+<div class="card-title">BOOK TITLES</div>
+<div class="card-value" id="totalTitles">-</div>
+</div>
+
+<div class="card">
+<div class="card-title">PHYSICAL STOCK</div>
+<div class="card-value" id="totalStock">-</div>
+<div class="card-subtitle">Total units</div>
+</div>
+
+<div class="card">
+<div class="card-title">INVENTORY VALUE</div>
+<div class="card-value" id="inventoryValue">-</div>
+<div class="card-subtitle">Based on MRP</div>
+</div>
+
+<div class="card">
+<div class="card-title">OUT OF STOCK</div>
+<div class="card-value" id="outOfStock">-</div>
+<div class="card-subtitle">Book titles</div>
+</div>
+
+</div>
+
+
+<h2 class="section-title">Delivery Overview</h2>
+
+<div class="cards">
+
+<div class="card">
+<div class="card-title">TOTAL ORDERS</div>
+<div class="card-value" id="totalOrders">-</div>
+</div>
+
+<div class="card">
+<div class="card-title">READY TO DISPATCH</div>
+<div class="card-value" id="readyToDispatch">-</div>
+</div>
+
+<div class="card">
+<div class="card-title">IN TRANSIT</div>
+<div class="card-value" id="inTransit">-</div>
+</div>
+
+<div class="card">
+<div class="card-title">OUT FOR DELIVERY</div>
+<div class="card-value" id="outForDelivery">-</div>
+</div>
+
+<div class="card">
+<div class="card-title">DELIVERED</div>
+<div class="card-value" id="delivered">-</div>
+</div>
+
+<div class="card">
+<div class="card-title">RTO</div>
+<div class="card-value" id="rto">-</div>
+</div>
+
+</div>
+
+</div>
+
+
+<!-- INVENTORY -->
+
+<div id="inventory" class="section">
+
+<h2>Book Inventory</h2>
+
+<div class="controls">
+
+<input
+id="inventorySearch"
+placeholder="Search ISBN or Book Name"
+oninput="renderInventory()">
+
+<select
+id="stockFilter"
+onchange="renderInventory()">
+
+<option value="">All Stock</option>
+<option value="available">Available</option>
+<option value="low">Low Stock</option>
+<option value="out">Out of Stock</option>
+
+</select>
+
+</div>
+
+
+<div class="table-box">
+
+<table>
+
+<thead>
+<tr>
+<th>ISBN</th>
+<th>Book Name</th>
+<th>MRP</th>
+<th>Opening</th>
+<th>Inward</th>
+<th>Outward</th>
+<th>Adjustment</th>
+<th>Physical Stock</th>
+</tr>
+</thead>
+
+<tbody id="inventoryTable"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<!-- DELIVERIES -->
+
+<div id="deliveries" class="section">
+
+<h2>Orders & Delivery</h2>
+
+<div class="controls">
+
+<input
+id="deliverySearch"
+placeholder="Search Order, Buyer, AWB or Book"
+oninput="renderDeliveries()">
+
+<select
+id="deliveryStatus"
+onchange="renderDeliveries()">
+
+<option value="">All Status</option>
+<option>Ready to Dispatch</option>
+<option>Dispatched</option>
+<option>In Transit</option>
+<option>Out for Delivery</option>
+<option>Delivered</option>
+<option>Delivery Attempted</option>
+<option>RTO</option>
+<option>Cancelled</option>
+
+</select>
+
+</div>
+
+
+<div class="table-box">
+
+<table>
+
+<thead>
+<tr>
+<th>Date</th>
+<th>Order No</th>
+<th>Buyer</th>
+<th>ISBN</th>
+<th>Book Name</th>
+<th>Qty</th>
+<th>Type</th>
+<th>Courier</th>
+<th>AWB</th>
+<th>Status</th>
+</tr>
+</thead>
+
+<tbody id="deliveryTable"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+const API_URL =
+"https://script.google.com/macros/s/AKfycbxNaem5tEOTsT1WTCivZx3kBSHZqswnz5j4abP-kebzB-n-lcvZd0zOKa-EPOjnfAsIrA/exec";
+
+let inventoryData = [];
+let deliveryData = [];
+
+
+/* LOAD DATA */
+
+async function loadData() {
+
+  document.getElementById("errorBox").innerHTML = "";
+
+  try {
+
+    const response = await fetch(API_URL);
+
+    if (!response.ok) {
+      throw new Error("Unable to connect to inventory API.");
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "API returned an error.");
+    }
+
+    inventoryData = data.inventory || [];
+    deliveryData = data.deliveries || [];
+
+    updateDashboard(data.summary || {});
+
+    renderInventory();
+    renderDeliveries();
+
+    if (data.lastUpdated) {
+
+      const date = new Date(data.lastUpdated);
+
+      document.getElementById("lastUpdated").textContent =
+        "Updated: " + date.toLocaleString();
+
+    }
+
+  }
+
+  catch(error) {
+
+    document.getElementById("errorBox").innerHTML =
+      '<div class="error">' +
+      'Unable to load live inventory data: ' +
+      escapeHtml(error.message) +
+      '</div>';
+
+    console.error(error);
+
+  }
+
+}
+
+
+/* DASHBOARD */
+
+function updateDashboard(summary) {
+
+  const inventory = summary.inventory || {};
+  const delivery = summary.delivery || {};
+
+  setText("totalTitles", inventory.totalTitles || 0);
+  setText("totalStock", formatNumber(inventory.totalStock || 0));
+
+  setText(
+    "inventoryValue",
+    formatCurrency(inventory.inventoryValue || 0)
+  );
+
+  setText("outOfStock", inventory.outOfStock || 0);
+
+  setText("totalOrders", delivery.totalOrders || 0);
+  setText("readyToDispatch", delivery.readyToDispatch || 0);
+  setText("inTransit", delivery.inTransit || 0);
+  setText("outForDelivery", delivery.outForDelivery || 0);
+  setText("delivered", delivery.delivered || 0);
+  setText("rto", delivery.rto || 0);
+
+}
+
+
+/* INVENTORY TABLE */
+
+function renderInventory() {
+
+  const search =
+    document.getElementById("inventorySearch")
+    .value.toLowerCase();
+
+  const filter =
+    document.getElementById("stockFilter").value;
+
+  let html = "";
+
+  inventoryData.forEach(item => {
+
+    const isbn = String(item["ISBN"] || "");
+    const name = String(item["Book Name"] || "");
+    const stock = Number(item["Physical Stock"] || 0);
+
+    const searchable =
+      (isbn + " " + name).toLowerCase();
+
+    if (
+      search &&
+      !searchable.includes(search)
+    ) return;
+
+
+    if (
+      filter === "out" &&
+      stock > 0
+    ) return;
+
+    if (
+      filter === "available" &&
+      stock <= 0
+    ) return;
+
+    if (
+      filter === "low" &&
+      !(stock > 0 && stock <= 10)
+    ) return;
+
+
+    let stockClass = "stock-good";
+
+    if (stock <= 0)
+      stockClass = "stock-zero";
+
+    else if (stock <= 10)
+      stockClass = "stock-low";
+
+
+    html += `
+      <tr>
+
+      <td>${escapeHtml(isbn)}</td>
+
+      <td>${escapeHtml(name)}</td>
+
+      <td>${formatCurrency(item["MRP"])}</td>
+
+      <td>${formatNumber(item["Opening"])}</td>
+
+      <td>${formatNumber(item["Inward"])}</td>
+
+      <td>${formatNumber(item["Outward"])}</td>
+
+      <td>${formatNumber(item["Adjustment"])}</td>
+
+      <td class="${stockClass}">
+      ${formatNumber(stock)}
+      </td>
+
+      </tr>
+    `;
+
+  });
+
+
+  if (!html) {
+
+    html =
+      `<tr>
+       <td colspan="8">
+       No inventory records found.
+       </td>
+       </tr>`;
+
+  }
+
+  document.getElementById("inventoryTable").innerHTML = html;
+
+}
+
+
+/* DELIVERY TABLE */
+
+function renderDeliveries() {
+
+  const search =
+    document.getElementById("deliverySearch")
+    .value.toLowerCase();
+
+  const statusFilter =
+    document.getElementById("deliveryStatus")
+    .value.toLowerCase();
+
+  let html = "";
+
+  deliveryData.forEach(item => {
+
+    const searchable =
+      (
+        (item["Order No"] || "") + " " +
+        (item["Buyer"] || "") + " " +
+        (item["AWB"] || "") + " " +
+        (item["Book Name"] || "")
+      ).toLowerCase();
+
+    const status =
+      String(item["Status"] || "");
+
+    if (
+      search &&
+      !searchable.includes(search)
+    ) return;
+
+    if (
+      statusFilter &&
+      status.toLowerCase() !== statusFilter
+    ) return;
+
+
+    html += `
+      <tr>
+
+      <td>${escapeHtml(item["Date"] || "")}</td>
+
+      <td>${escapeHtml(item["Order No"] || "")}</td>
+
+      <td>${escapeHtml(item["Buyer"] || "")}</td>
+
+      <td>${escapeHtml(item["ISBN"] || "")}</td>
+
+      <td>${escapeHtml(item["Book Name"] || "")}</td>
+
+      <td>${escapeHtml(item["Qty"] || "")}</td>
+
+      <td>${escapeHtml(item["Type"] || "")}</td>
+
+      <td>${escapeHtml(item["Courier"] || "")}</td>
+
+      <td>${escapeHtml(item["AWB"] || "")}</td>
+
+      <td>
+        <span class="status ${statusClass(status)}">
+        ${escapeHtml(status || "Pending")}
+        </span>
+      </td>
+
+      </tr>
+    `;
+
+  });
+
+
+  if (!html) {
+
+    html =
+      `<tr>
+       <td colspan="10">
+       No delivery records found.
+       </td>
+       </tr>`;
+
+  }
+
+  document.getElementById("deliveryTable").innerHTML = html;
+
+}
+
+
+/* NAVIGATION */
+
+function showSection(sectionId, button) {
+
+  document
+    .querySelectorAll(".section")
+    .forEach(section =>
+      section.classList.remove("active")
+    );
+
+  document
+    .querySelectorAll(".nav button")
+    .forEach(btn =>
+      btn.classList.remove("active")
+    );
+
+  document
+    .getElementById(sectionId)
+    .classList.add("active");
+
+  button.classList.add("active");
+
+}
+
+
+/* HELPERS */
+
+function setText(id,value) {
+  document.getElementById(id).textContent = value;
+}
+
+
+function formatNumber(value) {
+
+  const number = Number(value || 0);
+
+  return new Intl.NumberFormat("en-IN")
+    .format(number);
+
+}
+
+
+function formatCurrency(value) {
+
+  const number = Number(value || 0);
+
+  return new Intl.NumberFormat(
+    "en-IN",
+    {
+      style:"currency",
+      currency:"INR",
+      maximumFractionDigits:0
+    }
+  ).format(number);
+
+}
+
+
+function statusClass(status) {
+
+  const value =
+    String(status).toLowerCase();
+
+  if (value === "delivered")
+    return "delivered";
+
+  if (
+    value === "in transit" ||
+    value === "out for delivery"
+  )
+    return "transit";
+
+  if (
+    value === "rto" ||
+    value === "delivery attempted" ||
+    value === "cancelled"
+  )
+    return "exception";
+
+  return "pending";
+
+}
+
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+/* START */
+
+loadData();
+
+</script>
+
+</body>
+</html>
